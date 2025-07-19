@@ -14,7 +14,6 @@ class FaceAnalysis:
         Perform face analysis on a single frame.
         Returns list of face analysis results.
         """
-        # This should do detection/analysis on the input frame (unlike get_frame_analysis which might grab its own)
         return self.process_frame_for_analysis(frame)
 
 
@@ -54,12 +53,10 @@ class FaceAnalysis:
                     dominant_emotion = result['dominant_emotion']
                     engagement_score, emotional_state = self.calculate_engagement(dominant_emotion)
 
-                    # Draw bounding box
                     x, y, w, h = region['x'], region['y'], region['w'], region['h']
                     if x >= 0 and y >= 0:
                         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
 
-                        # Draw emotion & score near the face
                         text = f"{dominant_emotion} ({emotional_state}), {engagement_score}%"
                         cv2.putText(frame, text, (x, y - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
@@ -124,7 +121,6 @@ class FaceAnalysis:
         except Exception as e:
             print("Face analysis error:", e)
 
-        # Convert to Tkinter format
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(frame)
         return ImageTk.PhotoImage(image=img)
@@ -134,7 +130,6 @@ class FaceAnalysis:
         self.cap.release()
         cv2.destroyAllWindows()
 
-# Only run if this script is executed directly
 if __name__ == "__main__":
     fa = FaceAnalysis()
     fa.analyze_feed()
