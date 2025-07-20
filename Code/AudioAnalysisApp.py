@@ -175,7 +175,9 @@ class AudioAnalysisApp:
             ax.axis('off')
             ax.plot(numpy.linspace(0, 10, 100), numpy.sin(numpy.linspace(0, 10, 100)), color="black")
             canvas_graph = FigureCanvasTkAgg(fig, master=frame)
-            canvas_graph.get_tk_widget().pack()
+            widget = canvas_graph.get_tk_widget()
+            widget.pack(padx=0, pady=0, ipadx=0, ipady=0, anchor="w")
+            widget.config(borderwidth=0, highlightthickness=0)
             canvas_graph.draw()
             self.metric_labels[metric] = indicator
             self.metric_graphs[metric] = (fig, ax, canvas_graph)
@@ -246,20 +248,20 @@ class AudioAnalysisApp:
         self.video_label = tk.Label(video_border, bg="black", width=480, height=360)
         self.video_label.pack()
 
-        def create_feedback_text(parent, title, initial_text):
+        def create_feedback_text(parent, title, initial_text, height):
             label = tk.Label(parent, text=title, font=("Arial", 18, "bold"),
                             fg="white", bg=self.colors["background"])
             label.pack(anchor="w", pady=(20, 5))
             text_box = tk.Text(
                 parent,
-                height=6,
+                height=height,
                 width=55,
                 bg=self.colors["text_bg"],
                 fg=self.colors["text_fg"],
                 font=("Lexend", 14),
                 wrap="word",
-                borderwidth=4,
-                relief="groove",
+                borderwidth=0,
+                relief="flat",
                 highlightthickness=0,
             )
             text_box.pack(pady=10)
@@ -267,12 +269,14 @@ class AudioAnalysisApp:
             text_box.config(state=tk.DISABLED)
             return text_box
 
-        self.face_feedback_text = create_feedback_text(right_frame, "Face Feedback", "Face Engagement: ")
-        self.feedback_text = create_feedback_text(right_frame, "Speech Feedback", "Speech Feedback: ")
+        self.face_feedback_text = create_feedback_text(right_frame, "Face Feedback", "Face Engagement: ", 3)
+        self.feedback_text = create_feedback_text(right_frame, "Speech Feedback", "Speech Feedback: ", 13)
+        
 
         self.init_webcam()
         self.current_webcam_frame = None
         self.update_webcam_feed()
+
 
 
 

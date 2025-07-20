@@ -521,48 +521,48 @@ class AudioProcessor:
         Returns:
         - str: Quick feedback on volume, pitch, speed, and energy.
         """
-        advice = ""
+        advice = "Speech Feedback:\n\n"
         score = 0
 
         if avg_loudness > 0:
-            advice += "Volume: Too loud, try backing away.\n\n\n"
+            advice += "Volume: Too loud, try backing away.\n\n"
         elif avg_loudness < -30:
-            advice += "Volume: Too quiet, speak up a bit.\n\n\n"
+            advice += "Volume: Too quiet, speak up a bit.\n\n"
         else:
-            advice += "Volume: Just right.\n\n\n"
+            advice += "Volume: Just right.\n\n"
             score += 1
 
         if pitch_variation < 900:
-            advice += "Pitch: Add more variation.\n\n\n"
+            advice += "Pitch: Add more variation.\n\n"
         else:
-            advice += "Pitch: Good variation.\n\n\n"
+            advice += "Pitch: Good variation.\n\n"
             score += 1
             
         if speech_rate < 24.0:
-            advice += "Speed: Speak a little faster.\n\n\n"
+            advice += "Speed: Speak a little faster.\n\n"
         elif speech_rate > 50.0:
-            advice += "Speed: Slow down slightly.\n\n\n"
+            advice += "Speed: Slow down slightly.\n\n"
         else:
-            advice += "Speed: Balanced.\n\n\n"
+            advice += "Speed: Balanced.\n\n"
             score += 1
 
             
         if avg_energy < 0.004:
-            advice += "Energy: Be more expressive.\n\n\n"
+            advice += "Energy: Be more expressive.\n\n"
         elif avg_energy > 0.015:
-            advice += "Energy: High — keep it up!\n\n\n"
+            advice += "Energy: High — keep it up!\n\n"
             score += 2
         else:
-            advice += "Energy: Well balanced.\n\n\n"
+            advice += "Energy: Well balanced.\n\n"
             score += 1
             
 
         if score >= 4:
-            advice += f"Engagement: You're being engaging!\n\n\n"
+            advice += f"Engagement: You're being engaging!"
         elif score >= 2:
-            advice += f"Engagement: You're being somewhat engaging.\n\n\n"
+            advice += f"Engagement: You're being somewhat engaging."
         else:
-            advice += f"Engagement: You're being less engaging.\n\n\n"
+            advice += f"Engagement: You're being less engaging."
         
         return advice
 
