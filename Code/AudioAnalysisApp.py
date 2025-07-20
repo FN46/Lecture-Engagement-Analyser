@@ -134,14 +134,14 @@ class AudioAnalysisApp:
     
     
     
-    
-    
+
     ########################## Real-time analysis ###############################
-    
-    
 
     def realtime_analysis_menu(self):
         from FaceAnalysis import FaceAnalysis
+
+        self.stop_webcam_feed()
+
         self.face_analyser = FaceAnalysis()
         self.analyser.face_analyser = self.face_analyser
 
@@ -149,137 +149,163 @@ class AudioAnalysisApp:
         self.create_header("Real-Time Analysis")
 
         container = tk.Frame(self.root, bg=self.colors["background"])
-        container.pack(fill="both", expand=True)
+        container.pack(fill="both", expand=True, padx=30, pady=30)
 
-        canvas = tk.Canvas(container, bg=self.colors["background"])
-        canvas.pack(side="left", fill="both", expand=True)
+        content_frame = tk.Frame(container, bg=self.colors["background"])
+        content_frame.pack(fill="both", expand=True)
 
-        content_frame = tk.Frame(canvas, bg=self.colors["background"])
-        canvas.create_window((0, 0), window=content_frame, anchor="nw")
-
-        # LEFT PANEL (Metrics)
+        # === LEFT: Metrics ===
         left_frame = tk.Frame(content_frame, bg=self.colors["background"])
-        left_frame.grid(row=0, column=0, sticky="ns", padx=20, pady=10)
+        left_frame.grid(row=0, column=0, sticky="n", padx=(0, 180))
 
         self.metric_labels = {}
         self.metric_graphs = {}
         metrics = ["Loudness", "Pitch", "Speech Rate", "Energy"]
         for metric in metrics:
             frame = tk.Frame(left_frame, bg=self.colors["background"])
-            frame.pack(pady=5, fill="x")
-            label = tk.Label(frame, text=metric, font=("Arial", 12, "bold"), bg=self.colors["background"], fg=self.colors["label"])
-            label.pack()
-            indicator = tk.Label(frame, text="●", font=("Arial", 20), fg="gray", bg=self.colors["background"])
-            indicator.pack()
-            fig, ax = plt.subplots(figsize=(4, 1.4), facecolor=self.colors["background"])
+            frame.pack(pady=15, fill="x")
+            label = tk.Label(frame, text=metric, font=("Arial", 16, "bold"),
+                            bg=self.colors["background"], fg=self.colors["label"])
+            label.pack(anchor="w")
+            indicator = tk.Label(frame, text="●", font=("Arial", 24),
+                                fg="gray", bg=self.colors["background"])
+            indicator.pack(anchor="w")
+            fig, ax = plt.subplots(figsize=(3.2, 1.2), facecolor=self.colors["background"])
             ax.set_facecolor(self.colors["background"])
             ax.axis('off')
             ax.plot(numpy.linspace(0, 10, 100), numpy.sin(numpy.linspace(0, 10, 100)), color="black")
             canvas_graph = FigureCanvasTkAgg(fig, master=frame)
-            canvas_graph.get_tk_widget().pack(pady=5, padx=10)
+            canvas_graph.get_tk_widget().pack()
             canvas_graph.draw()
             self.metric_labels[metric] = indicator
             self.metric_graphs[metric] = (fig, ax, canvas_graph)
 
-        # RIGHT PANEL (Video and Feedback)
+        # === MIDDLE: Controls ===
+        middle_frame = tk.Frame(content_frame, bg=self.colors["background"])
+        middle_frame.grid(row=0, column=1, sticky="n", padx=(0, 180))
+
+        section_header = tk.Label(middle_frame, text="Controls", font=("Arial", 18, "bold"),
+                                fg="white", bg=self.colors["background"])
+        section_header.pack(anchor="w", pady=(0, 20))
+
+        def create_medium_button(parent, text, command):
+            btn = tk.Button(
+                parent,
+                text=text,
+                command=command,
+                font=("Arial", 14, "bold"),
+                bg=self.colors["button_bg"],
+                fg=self.colors["button_fg"],
+                activebackground=self.colors["button_hover"],
+                relief="raised",
+                bd=2,
+                height=1,
+                width=25,
+                padx=5,
+                pady=4,
+            )
+            return btn
+
+        control_groups = {
+            "Recording": [
+                ("Start Recording", self.analyser.start_recording),
+                ("Stop Recording", self.analyser.stop_recording),
+            ],
+            "Playback": [
+                ("Play", self.analyser.play_recording),
+                ("Pause", self.analyser.pause_playback),
+                ("Resume", self.analyser.resume_playback),
+            ],
+            "Seek": [
+                ("15s Back", lambda: self.analyser.seek_playback(-15)),
+                ("15s Forward", lambda: self.analyser.seek_playback(15)),
+            ],
+            "Other": [
+                ("Download WAV", lambda: self.analyser.download_recording("recording.wav")),
+                ("Back to Menu", lambda: [self.stop_webcam_feed(), self.create_main_menu()]),
+            ],
+        }
+
+        for group_name, buttons in control_groups.items():
+            group_label = tk.Label(middle_frame, text=group_name, font=("Arial", 14, "bold"),
+                                bg=self.colors["background"], fg="white")
+            group_label.pack(anchor="w", pady=(15, 5))
+            for btn_text, cmd in buttons:
+                create_medium_button(middle_frame, btn_text, cmd).pack(pady=6)
+
+        # === RIGHT: Video + Feedback ===
         right_frame = tk.Frame(content_frame, bg=self.colors["background"])
-        right_frame.grid(row=0, column=1, sticky="n", padx=20, pady=10)
+        right_frame.grid(row=0, column=2, sticky="n")
 
-        self.create_section_header("Video Feed").pack(in_=right_frame)
+        video_header = tk.Label(right_frame, text="Video Feed", font=("Arial", 18, "bold"),
+                                fg="white", bg=self.colors["background"])
+        video_header.pack(anchor="w")
 
-        self.video_label = tk.Label(right_frame)
-        self.video_label.pack(pady=5)
+        video_border = tk.Frame(right_frame, bg="gray", padx=5, pady=5)
+        video_border.pack(pady=10)
+        self.video_label = tk.Label(video_border, bg="black", width=480, height=360)
+        self.video_label.pack()
 
-        # Face Feedback Label
-        self.face_feedback_text = tk.Text(
-            right_frame,
-            height=2,
-            width=40,
-            bg=self.colors["text_bg"],
-            fg=self.colors["text_fg"],
-            font=("Lexend", 10),
-            wrap="word",
-            borderwidth=0,
-            highlightthickness=0,
-        )
-        self.face_feedback_text.pack(pady=5)
-        self.face_feedback_text.insert("1.0", "Face Engagement: ")
-        self.face_feedback_text.config(state=tk.DISABLED)
+        def create_feedback_text(parent, title, initial_text):
+            label = tk.Label(parent, text=title, font=("Arial", 18, "bold"),
+                            fg="white", bg=self.colors["background"])
+            label.pack(anchor="w", pady=(20, 5))
+            text_box = tk.Text(
+                parent,
+                height=6,
+                width=55,
+                bg=self.colors["text_bg"],
+                fg=self.colors["text_fg"],
+                font=("Lexend", 14),
+                wrap="word",
+                borderwidth=4,
+                relief="groove",
+                highlightthickness=0,
+            )
+            text_box.pack(pady=10)
+            text_box.insert("1.0", initial_text)
+            text_box.config(state=tk.DISABLED)
+            return text_box
 
-        # Speech Feedback Text
-        self.feedback_text = tk.Text(
-            right_frame,
-            height=8,
-            width=40,
-            bg=self.colors["text_bg"],
-            fg=self.colors["text_fg"],
-            font=("Lexend", 12, "bold"),
-            wrap="word",
-            borderwidth=0,
-            highlightthickness=0,
-        )
-        self.feedback_text.pack(pady=15)
-        self.feedback_text.insert("1.0", "Speech Feedback: ")
-        self.feedback_text.config(state=tk.DISABLED)
+        self.face_feedback_text = create_feedback_text(right_frame, "Face Feedback", "Face Engagement: ")
+        self.feedback_text = create_feedback_text(right_frame, "Speech Feedback", "Speech Feedback: ")
 
-        # CONTROL BUTTONS
-        control_frame = tk.Frame(right_frame, bg=self.colors["background"])
-        control_frame.pack(pady=5)
-
-        # Group 1: Recording Controls
-        record_frame = tk.Frame(control_frame, bg=self.colors["background"])
-        record_frame.grid(row=0, column=0, padx=5)
-        tk.Label(record_frame, text="Recording", bg=self.colors["background"], fg="white", font=("Arial", 10, "bold")).pack()
-        self.create_button(record_frame, "Start Recording", self.analyser.start_recording).pack(pady=3, fill="x")
-        self.create_button(record_frame, "Stop Recording", self.analyser.stop_recording).pack(pady=3, fill="x")
-
-        # Group 2: Playback Controls
-        playback_frame = tk.Frame(control_frame, bg=self.colors["background"])
-        playback_frame.grid(row=0, column=1, padx=5)
-        tk.Label(playback_frame, text="Playback", bg=self.colors["background"], fg="white", font=("Arial", 10, "bold")).pack()
-        self.create_button(playback_frame, "Play", self.analyser.play_recording).pack(pady=3, fill="x")
-        self.create_button(playback_frame, "Pause", self.analyser.pause_playback).pack(pady=3, fill="x")
-        self.create_button(playback_frame, "Resume", self.analyser.resume_playback).pack(pady=3, fill="x")
-
-        # Group 3: Seek Controls
-        seek_frame = tk.Frame(control_frame, bg=self.colors["background"])
-        seek_frame.grid(row=0, column=2, padx=5)
-        tk.Label(seek_frame, text="Seek", bg=self.colors["background"], fg="white", font=("Arial", 10, "bold")).pack()
-        self.create_button(seek_frame, "15s Back", lambda: self.analyser.seek_playback(-15)).pack(pady=3, fill="x")
-        self.create_button(seek_frame, "15s Forward", lambda: self.analyser.seek_playback(15)).pack(pady=3, fill="x")
-
-        # Group 4: Other
-        misc_frame = tk.Frame(control_frame, bg=self.colors["background"])
-        misc_frame.grid(row=0, column=3, padx=5)
-        tk.Label(misc_frame, text="Other", bg=self.colors["background"], fg="white", font=("Arial", 10, "bold")).pack()
-        self.create_button(misc_frame, "Download WAV", lambda: self.analyser.download_recording("recording.wav")).pack(pady=3, fill="x")
-        self.create_button(misc_frame, "Back to Menu", self.create_main_menu).pack(pady=3, fill="x")
-
-        # Start webcam and updating
         self.init_webcam()
         self.current_webcam_frame = None
         self.update_webcam_feed()
 
 
+
         
+        
+    def stop_webcam_feed(self):
+        """
+        Safely stop webcam feed and release video capture.
+        """
+        self.running_webcam = False
+        if hasattr(self, 'video_capture') and self.video_capture:
+            self.video_capture.release()
+            self.video_capture = None
+
+
+
     
     def init_webcam(self):
-        """
-        Initializes the webcam using DirectShow backend to avoid MSMF errors.
-        """
         import cv2
         self.video_capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
         if not self.video_capture.isOpened():
             print("Error: Could not access the webcam.")
             self.video_capture = None
+        else:
+            self.running_webcam = True
     
 
     def update_webcam_feed(self):
-        """
-        Continuously fetch and display raw webcam frames (no annotations).
-        """
         import cv2
         from PIL import Image, ImageTk
+
+        if not getattr(self, 'running_webcam', False):
+            return  
 
         if self.video_capture and self.video_capture.isOpened():
             ret, frame = self.video_capture.read()
@@ -288,17 +314,19 @@ class AudioAnalysisApp:
                 img = Image.fromarray(frame_rgb)
                 imgtk = ImageTk.PhotoImage(image=img)
                 try:
-                    self.video_label.config(image=imgtk)
-                    self.video_label.image = imgtk
-                except tk.TclError:
-                    print("Error updating webcam feed: ", tk.TclError)
+                    if self.video_label.winfo_exists():
+                        self.video_label.config(image=imgtk)
+                        self.video_label.image = imgtk
+                except tk.TclError as e:
+                    print("Error updating webcam feed:", e)
 
-                # Store the current frame for external access (in analyse_chunk)
                 self.current_webcam_frame = frame
                 if hasattr(self, 'analyser'):
                     self.analyser.current_webcam_frame = frame
 
-        self.root.after(30, self.update_webcam_feed)
+        if self.running_webcam:
+            self.root.after(30, self.update_webcam_feed)
+
 
 
             
@@ -326,6 +354,9 @@ class AudioAnalysisApp:
             self.face_feedback_text.config(state=tk.DISABLED)
         else:
             print("Warning: face_feedback_text not initialised in AudioAnalysisApp")
+
+
+
 
 
 

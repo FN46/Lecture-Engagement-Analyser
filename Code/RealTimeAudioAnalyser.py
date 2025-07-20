@@ -331,8 +331,6 @@ class RealTimeAudioAnalyser:
             if self.current_webcam_frame is not None and hasattr(self, 'face_analyser'):
                 try:
                     face_data = self.face_analyser.analyse_single_frame(self.current_webcam_frame)
-                    print("🧠 Face data:", face_data)
-                    print("📷 Current frame shape:", self.current_webcam_frame.shape)
                     if face_data:
                         summary = []
                         for face in face_data:
@@ -342,7 +340,6 @@ class RealTimeAudioAnalyser:
                             summary.append(f"{emotion} ({state}), {engagement}%")
                         face_feedback = "Face Engagement: " + " | ".join(summary)
                         self.root.after(0, lambda: self.app.update_face_feedback_text(face_feedback))
-                        print("✅ Updating GUI with:", face_feedback)
                 except Exception as e:
                     print(f"Face analysis in analyse_chunk failed: {e}")
             else:
