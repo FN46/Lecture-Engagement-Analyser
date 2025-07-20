@@ -4,7 +4,7 @@ import customtkinter as ctk
 import os
 from tkinter import filedialog, messagebox
 from tkinterdnd2 import TkinterDnD  
-from RealTimeAudioAnalyser import RealTimeAudioAnalyser
+from RealTimeAudioAnalyser import RealTimeAudioAnalyser  
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from threading import Thread
 import matplotlib.pyplot as plt
@@ -143,21 +143,23 @@ class AudioAnalysisApp:
     def realtime_analysis_menu(self):
         from FaceAnalysis import FaceAnalysis
         self.face_analyser = FaceAnalysis()
+        self.analyser.face_analyser = self.face_analyser
 
         self.clear_window()
         self.create_header("Real-Time Analysis")
 
         container = tk.Frame(self.root, bg=self.colors["background"])
         container.pack(fill="both", expand=True)
-        
+
         canvas = tk.Canvas(container, bg=self.colors["background"])
         canvas.pack(side="left", fill="both", expand=True)
 
         content_frame = tk.Frame(canvas, bg=self.colors["background"])
         canvas.create_window((0, 0), window=content_frame, anchor="nw")
 
+        # LEFT PANEL (Metrics)
         left_frame = tk.Frame(content_frame, bg=self.colors["background"])
-        left_frame.pack(side=tk.LEFT, padx=20, pady=10, fill="y")
+        left_frame.grid(row=0, column=0, sticky="ns", padx=20, pady=10)
 
         self.metric_labels = {}
         self.metric_graphs = {}
@@ -179,29 +181,36 @@ class AudioAnalysisApp:
             self.metric_labels[metric] = indicator
             self.metric_graphs[metric] = (fig, ax, canvas_graph)
 
+        # RIGHT PANEL (Video and Feedback)
         right_frame = tk.Frame(content_frame, bg=self.colors["background"])
-        right_frame.pack(side=tk.RIGHT, padx=10, pady=0, fill="y")
+        right_frame.grid(row=0, column=1, sticky="n", padx=20, pady=10)
 
         self.create_section_header("Video Feed").pack(in_=right_frame)
-        video_frame = tk.Frame(right_frame, bg=self.colors["background"])
-        video_frame.pack(fill="both", expand=False)
 
-        self.video_label = tk.Label(video_frame)
-        self.video_label.pack(expand=True, fill="both")
+        self.video_label = tk.Label(right_frame)
+        self.video_label.pack(pady=5)
 
-        self.face_feedback_label = tk.Label(
-            content_frame,
-            text="Face Engagement: ",
-            font=("Arial", 10),
-            bg=self.colors["background"],
-            fg="white"
+        # Face Feedback Label
+        self.face_feedback_text = tk.Text(
+            right_frame,
+            height=2,
+            width=40,
+            bg=self.colors["text_bg"],
+            fg=self.colors["text_fg"],
+            font=("Lexend", 10),
+            wrap="word",
+            borderwidth=0,
+            highlightthickness=0,
         )
-        self.face_feedback_label.pack(pady=5)
+        self.face_feedback_text.pack(pady=5)
+        self.face_feedback_text.insert("1.0", "Face Engagement: ")
+        self.face_feedback_text.config(state=tk.DISABLED)
 
+        # Speech Feedback Text
         self.feedback_text = tk.Text(
-            content_frame,
-            height=20,
-            width=30,
+            right_frame,
+            height=8,
+            width=40,
             bg=self.colors["text_bg"],
             fg=self.colors["text_fg"],
             font=("Lexend", 12, "bold"),
@@ -210,27 +219,23 @@ class AudioAnalysisApp:
             highlightthickness=0,
         )
         self.feedback_text.pack(pady=15)
-
-        # Start webcam 
-        self.init_webcam()
-        self.update_webcam_feed()
-        self.current_webcam_frame = None  # Store the latest frame
-
+        self.feedback_text.insert("1.0", "Speech Feedback: ")
+        self.feedback_text.config(state=tk.DISABLED)
 
         # CONTROL BUTTONS
-        control_frame = tk.Frame(content_frame, bg=self.colors["background"])
-        control_frame.pack(pady=12)
+        control_frame = tk.Frame(right_frame, bg=self.colors["background"])
+        control_frame.pack(pady=5)
 
         # Group 1: Recording Controls
         record_frame = tk.Frame(control_frame, bg=self.colors["background"])
-        record_frame.pack(side=tk.LEFT, padx=10)
+        record_frame.grid(row=0, column=0, padx=5)
         tk.Label(record_frame, text="Recording", bg=self.colors["background"], fg="white", font=("Arial", 10, "bold")).pack()
         self.create_button(record_frame, "Start Recording", self.analyser.start_recording).pack(pady=3, fill="x")
         self.create_button(record_frame, "Stop Recording", self.analyser.stop_recording).pack(pady=3, fill="x")
 
         # Group 2: Playback Controls
         playback_frame = tk.Frame(control_frame, bg=self.colors["background"])
-        playback_frame.pack(side=tk.LEFT, padx=10)
+        playback_frame.grid(row=0, column=1, padx=5)
         tk.Label(playback_frame, text="Playback", bg=self.colors["background"], fg="white", font=("Arial", 10, "bold")).pack()
         self.create_button(playback_frame, "Play", self.analyser.play_recording).pack(pady=3, fill="x")
         self.create_button(playback_frame, "Pause", self.analyser.pause_playback).pack(pady=3, fill="x")
@@ -238,17 +243,23 @@ class AudioAnalysisApp:
 
         # Group 3: Seek Controls
         seek_frame = tk.Frame(control_frame, bg=self.colors["background"])
-        seek_frame.pack(side=tk.LEFT, padx=10)
+        seek_frame.grid(row=0, column=2, padx=5)
         tk.Label(seek_frame, text="Seek", bg=self.colors["background"], fg="white", font=("Arial", 10, "bold")).pack()
         self.create_button(seek_frame, "15s Back", lambda: self.analyser.seek_playback(-15)).pack(pady=3, fill="x")
         self.create_button(seek_frame, "15s Forward", lambda: self.analyser.seek_playback(15)).pack(pady=3, fill="x")
 
-        # Group 4: Download/Quit
+        # Group 4: Other
         misc_frame = tk.Frame(control_frame, bg=self.colors["background"])
-        misc_frame.pack(side=tk.LEFT, padx=10)
+        misc_frame.grid(row=0, column=3, padx=5)
         tk.Label(misc_frame, text="Other", bg=self.colors["background"], fg="white", font=("Arial", 10, "bold")).pack()
         self.create_button(misc_frame, "Download WAV", lambda: self.analyser.download_recording("recording.wav")).pack(pady=3, fill="x")
         self.create_button(misc_frame, "Back to Menu", self.create_main_menu).pack(pady=3, fill="x")
+
+        # Start webcam and updating
+        self.init_webcam()
+        self.current_webcam_frame = None
+        self.update_webcam_feed()
+
 
         
     
@@ -276,12 +287,16 @@ class AudioAnalysisApp:
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 img = Image.fromarray(frame_rgb)
                 imgtk = ImageTk.PhotoImage(image=img)
-
-                self.video_label.config(image=imgtk)
-                self.video_label.image = imgtk  # prevent GC
+                try:
+                    self.video_label.config(image=imgtk)
+                    self.video_label.image = imgtk
+                except tk.TclError:
+                    print("Error updating webcam feed: ", tk.TclError)
 
                 # Store the current frame for external access (in analyse_chunk)
                 self.current_webcam_frame = frame
+                if hasattr(self, 'analyser'):
+                    self.analyser.current_webcam_frame = frame
 
         self.root.after(30, self.update_webcam_feed)
 
@@ -298,8 +313,19 @@ class AudioAnalysisApp:
             self.feedback_text.insert(tk.END, feedback + "\n")  
             self.feedback_text.see(tk.END)              
             self.feedback_text.config(state=tk.DISABLED)  
+            
         else:
             print("Warning: feedback_text not initialized in AudioAnalysisApp")
+            
+    
+    def update_face_feedback_text(self, text):
+        if hasattr(self, 'face_feedback_text'):
+            self.face_feedback_text.config(state=tk.NORMAL)
+            self.face_feedback_text.delete("1.0", tk.END)
+            self.face_feedback_text.insert(tk.END, text)
+            self.face_feedback_text.config(state=tk.DISABLED)
+        else:
+            print("Warning: face_feedback_text not initialised in AudioAnalysisApp")
 
 
 
@@ -1076,9 +1102,6 @@ class AudioAnalysisApp:
         - Properly shuts down the Tkinter window.
         """
         self.cleanup_files()
-
-        if hasattr(self, "face_analyser"):
-            self.face_analyser.cleanup()
 
         self.root.quit()
         self.root.destroy()

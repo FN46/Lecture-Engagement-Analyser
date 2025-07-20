@@ -2,5 +2,5 @@ break_duration=5.0
 pause_duration=0.15
 loudness_threshold=-25.0
 pause_threshold_value=0.001
-update_interval=5.0
+update_interval=3.0
 silence_threshold=0.004

@@ -32,6 +32,7 @@ class RealTimeAudioAnalyser:
         self.audio_buffer = []
         self.sr = 44100
         self.analysis_queue = queue.Queue()
+        self.current_webcam_frame = None
 
         self.update_interval = app.settings.get("update_interval", 5.0)
         self.silence_threshold = app.settings.get("silence_threshold", 0.008)
@@ -285,7 +286,7 @@ class RealTimeAudioAnalyser:
 
 
 
-    ########################## Audio Processing ###############################
+    ########################## Audio and Face Processing ###############################
 
 
 
@@ -313,17 +314,25 @@ class RealTimeAudioAnalyser:
         avg_rms = np.mean(frame_rms)
 
         if avg_rms < self.silence_threshold:
-            self.root.after(0, lambda: self.app.update_feedback_text("Below the silence threshold, no analysis is being performed."))
+            self.root.after(0, lambda: self.app.update_feedback_text(
+                "Below the silence threshold, no analysis is being performed."
+            ))
             return
 
         current_time = time.time()
 
         if current_time - self.last_update_time >= self.update_interval:
+            # Process speech feedback first.
             full_feedback = processor.give_realtime_audio_feedback(y, sr)
-            # Perform face analysis on one webcam frame
+            if isinstance(full_feedback, str):
+                self.root.after(0, lambda: self.app.update_feedback_text(full_feedback))
+
+            # Process face analysis feedback using the stored webcam frame.
             if self.current_webcam_frame is not None and hasattr(self, 'face_analyser'):
                 try:
                     face_data = self.face_analyser.analyse_single_frame(self.current_webcam_frame)
+                    print("🧠 Face data:", face_data)
+                    print("📷 Current frame shape:", self.current_webcam_frame.shape)
                     if face_data:
                         summary = []
                         for face in face_data:
@@ -332,34 +341,14 @@ class RealTimeAudioAnalyser:
                             engagement = face['engagement']
                             summary.append(f"{emotion} ({state}), {engagement}%")
                         face_feedback = "Face Engagement: " + " | ".join(summary)
-                        self.root.after(0, lambda: self.update_feedback_text(face_feedback))
+                        self.root.after(0, lambda: self.app.update_face_feedback_text(face_feedback))
+                        print("✅ Updating GUI with:", face_feedback)
                 except Exception as e:
                     print(f"Face analysis in analyse_chunk failed: {e}")
+            else:
+                print("No webcam frame available for face analysis or face_analyser not initialized.")
 
-                        
-            
-            
-            if isinstance(full_feedback, str):
-                self.root.after(0, lambda: self.app.update_feedback_text(full_feedback))
-
-            # FACE ANALYSIS: capture one frame and analyse it
-            if hasattr(self, 'video_capture') and self.video_capture.isOpened():
-                ret, frame = self.video_capture.read()
-                if ret:
-                    try:
-                        face_data = self.face_analyser.analyse_single_frame(frame)
-                        if face_data:
-                            summary = []
-                            for face in face_data:
-                                emotion = face['emotion']
-                                state = face['state']
-                                engagement = face['engagement']
-                                summary.append(f"{emotion} ({state}), {engagement}%")
-                            summary_text = "Face Engagement: " + " | ".join(summary)
-                            self.root.after(0, lambda: self.app.update_face_feedback_text(summary_text))
-                    except Exception as e:
-                        print(f"Face analysis error during audio interval: {e}")
-
+            # Process and update metric graphs for speech analysis.
             metrics = {
                 "Loudness": processor.analyse_loudness(y, sr)[0],
                 "Pitch": processor.analyse_pitch(y, sr)[0],

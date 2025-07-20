@@ -499,7 +499,7 @@ class AudioProcessor:
             avg_energy = self.analyse_vocal_energy(y, sr)
 
             advice = self.generate_realtime_advice(avg_loudness, pitch_variation, speech_rate, avg_energy)
-            return advice
+            return advice or "No feedback available for this segment."
         
         except MemoryError:
             print("Memory issue while plotting Fourier Transform. Try using a smaller sample size.")
